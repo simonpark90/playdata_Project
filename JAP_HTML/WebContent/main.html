@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<title>wordProject</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<style>
+	body,h1 {
+		font-family: "Raleway", sans-serif;
+		font-weight: bold;
+	}
+	body, html {height: 100%}
+	.bgimg {
+	  background-image: url('Hello.jpg');
+	  min-height: 100%;
+	  background-position: center;
+	  background-size: cover;
+	}
+	
+	textarea { 
+		font-size:15pt;
+		background-color:transparent;
+	}
+    div.left {
+        width: 50%;
+        float: left;
+    }
+    div.right {
+        width: 50%;
+        float: right;
+    }
+
+#chartdiv {
+  width: 100%;
+  height: 600px;
+}
+</style>
+<body>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://rawgit.com/jasondavies/d3-cloud/master/build/d3.layout.cloud.js" type="text/JavaScript"></script>
+<script src="https://cdn.amcharts.com/lib/4/core.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/plugins/wordCloud.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
+<div class="bgimg w3-display-container w3-animate-opacity w3-text-white">
+  <div class="w3-display-topleft w3-padding-large w3-xlarge">
+    OpenPose
+  </div>
+  <div class="w3-display-middle">
+    <h1 class="w3-jumbo w3-animate-top">Data Analysis</h1>
+    <hr class="w3-border-grey" style="margin:auto;width:40%">
+    <p class="w3-jumbo w3-animate-top">
+        <textarea id="inputData" rows='10' cols="100">
+        </textarea>
+    </p>
+    <button onclick="Hello()" style="float:right; font-size:15pt;">입력</button>
+  </div>
+  <div class="w3-display-bottomleft w3-padding-large">
+    Powered by 박성우 원준수 김문희
+  </div>
+</div>
+<div id="piechart" style="width: 900px; height: 500px;" class="left"></div>
+<div id="next" style="width: 900px; height: 500px;" class="right"><br></div>
+<div id="chartdiv"></div>
+<script type="text/javascript">
+		function countWord(list){
+			list = list.replace(/\n/g," ").split(' ');
+			const result = list.reduce((object, currentValue) => {
+				if (!object[currentValue]) {
+               	 object[currentValue] = 0;
+           	 	}
+           	 	object[currentValue]++;
+            	return object;
+        	}, {});
+        	for(res in result){
+           		if(res!=""){
+  	      			data.push([res,result[res]]);
+           		} 
+        	} 
+        	data.sort(function(a, b) {
+        		return (a[1]<b[1]) ? -1:1;
+        	})
+        	console.log(data);
+            data.reverse();
+            data = data.slice(0,11);
+            console.log(data);
+        	data.unshift(["word","count"]);
+        	console.log(data);
+		}
+		
+        function Hello(){
+    		data = [];
+            let list = document.getElementById("inputData").value.trim();
+            countWord(list);
+            chartPrint("first");
+            insert();
+        }
+        
+        function chartPrint(type) {
+            google.charts.load('current', {'packages' : [ 'corechart' ]});
+            if(type=="first"){
+            	google.charts.setOnLoadCallback(drawChart);
+        	}else if(type=="second"){
+            	google.charts.setOnLoadCallback(drawChart2);
+        	}
+        }
+        
+        function drawChart() {
+            dataPrint(data);
+        }
+        
+        function drawChart2() {
+            allDataPrint(data);
+        }
+        
+        function dataPrint(v) {
+            var data = google.visualization.arrayToDataTable(v);
+            var options = {
+                title : '< 입력한 단어 >'
+            };
+            var chart = new google.visualization.PieChart(document
+                    .getElementById('piechart'));
+            chart.draw(data, options);
+            document.getElementById('next').innerHTML += '<input id="startDate" type="date" value="2020-08-01" min="2020-08-01" max="2020-08-31">&nbsp&nbsp&nbsp&nbsp';
+            document.getElementById('next').innerHTML += '<input id="endDate" type="date" value="2020-08-01" min="2020-08-01" max="2020-08-31"></p>';
+            document.getElementById('next').innerHTML += '<button onclick="getData()">기간별 인기 검색어 보기</button>';
+        }
+        
+        function allDataPrint(v) {
+            var data = google.visualization.arrayToDataTable(v);
+            var options = {
+                title : '< Top 10 >'
+            };
+            var chart = new google.visualization.PieChart(document
+                    .getElementById('next'));
+            chart.draw(data, options);
+        }
+        
+    	function insert(){
+    		axios.get('controller', {
+    		params : {
+    			   command : "insert",
+    			   content : document.getElementById("inputData").value.trim()
+    		   }
+    		  })
+    	  };
+    	  
+    	function getData(){
+    		axios.get('controller',{
+    		params : {
+    			command : "select",
+    			startDate : document.getElementById("startDate").value,
+    			endDate : document.getElementById("endDate").value
+    		}
+    		})
+    		.then(response=>{
+    			data = [];
+    			countWord(response.data.replace("[","").replace("]","").replace(/,/g,""));
+    			chartPrint("second");
+    			am4core.ready(function() {
+    				
+    				am4core.useTheme(am4themes_animated);
+    			
+    				var chart = am4core.create("chartdiv", am4plugins_wordCloud.WordCloud);
+    				chart.fontFamily = "Courier New";
+    				var series = chart.series.push(new am4plugins_wordCloud.WordCloudSeries());
+    				series.randomness = 0.1;
+    				series.rotationThreshold = 0.5;
+    				var list = response.data.replace("[","").replace("]","").replace(/,/g,"");
+    				list = list.replace(/\n/g," ").split(' ');
+    				const result = list.reduce((object, currentValue) => {
+    					if (!object[currentValue]) {
+    	               	 object[currentValue] = 0;
+    	           	 	}
+    	           	 	object[currentValue]++;
+    	            	return object;
+    	        	}, {});
+    	        	
+    				series.data = [];
+    				for(res in result){
+    	           		if(res!=""){
+    	  	      			series.data.push({"tag":res,"count":result[res]});
+    	           		} 
+    	        	}
+    			
+    				series.dataFields.word = "tag";
+    				series.dataFields.value = "count";
+    			
+    				series.heatRules.push({
+	    			 	"target": series.labels.template,
+	    			 	"property": "fill",
+	    			 	"min": am4core.color("#0000CC"),
+	    			 	"max": am4core.color("#CC00CC"),
+	    			 	"dataField": "value"
+    				});
+    				
+    				series.labels.template.url = "https://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&query={word}";
+    				/* series.labels.template.urlTarget = "_blank"; */
+    				series.labels.template.tooltipText = "{word}: {value}";
+    			
+    				var hoverState = series.labels.template.states.create("hover");
+    				hoverState.properties.fill = am4core.color("#FF0000");
+    			
+    				});
+    		}) 
+    	}
+    	
+        </script>
+
+</body>
+</html>
